@@ -1,0 +1,27 @@
+services:
+  omnirag:
+    build: .
+    image: omnirag-core:1.0.0
+    container_name: omnirag-core
+    restart: unless-stopped
+    ports:
+      - "${OMNIRAG_PORT:-8000}:8000"
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      MASTER_SECRET_KEY: ${MASTER_SECRET_KEY:-}
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-25}
+      CHAT_RATE_LIMIT_PER_MINUTE: ${CHAT_RATE_LIMIT_PER_MINUTE:-30}
+      ALLOW_PRIVATE_URLS: ${ALLOW_PRIVATE_URLS:-false}
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

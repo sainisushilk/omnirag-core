@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OmniRAG Core Admin</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --bg:#f4f6f8; --card:#fff; --text:#16202c; --muted:#556270; --line:#d5dbe2; --accent:#0f6b5c; --accent-text:#fff; --danger:#b3261e; --ok-bg:#e3f4ee; --ok:#0b5747; --err-bg:#fdecea; --err:#8c1d18; --warn-bg:#fff4d6; --warn:#6b4a00; color-scheme:light; }
+  @media (prefers-color-scheme:dark) { :root { --bg:#11161c; --card:#1a2129; --text:#e6ebf0; --muted:#9dabb9; --line:#36414d; --accent:#45b8a1; --accent-text:#06231d; --danger:#f2877f; --ok-bg:#123a31; --ok:#a5e6d5; --err-bg:#45201e; --err:#ffc9c4; --warn-bg:#40330f; --warn:#f8dc94; color-scheme:dark; } }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:var(--card); border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:18px; } h2 { margin:0 0 4px; font-size:17px; } h3 { margin:20px 0 4px; font-size:15px; }
+  p { margin:0 0 14px; color:var(--muted); }
+  main { max-width:860px; margin:0 auto; padding:20px 16px 60px; }
+  nav { display:flex; gap:4px; margin-bottom:18px; overflow-x:auto; border-bottom:1px solid var(--line); }
+  nav button { border:0; border-bottom:3px solid transparent; border-radius:0; background:none; color:var(--muted); white-space:nowrap; }
+  nav button[aria-selected="true"] { border-bottom-color:var(--accent); color:var(--text); font-weight:600; }
+  .card { margin-bottom:18px; padding:20px; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr)); gap:14px; }
+  label { display:block; font-weight:600; font-size:14px; }
+  input,select,textarea { display:block; width:100%; margin-top:5px; padding:9px 11px; border:1px solid var(--line); border-radius:7px; background:var(--bg); color:var(--text); font:inherit; font-weight:400; }
+  input[type="color"] { height:42px; padding:4px; } textarea { min-height:140px; resize:vertical; }
+  button { padding:9px 16px; border:1px solid var(--line); border-radius:7px; background:var(--card); color:var(--text); font:inherit; cursor:pointer; }
+  button.primary { border-color:var(--accent); background:var(--accent); color:var(--accent-text); font-weight:600; }
+  button.danger { border-color:var(--danger); color:var(--danger); }
+  button:disabled { opacity:.55; cursor:default; }
+  :focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+  .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+  .notice { margin-top:14px; padding:10px 13px; border-radius:7px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .notice.ok { background:var(--ok-bg); color:var(--ok); } .notice.error { background:var(--err-bg); color:var(--err); } .notice.warn { background:var(--warn-bg); color:var(--warn); }
+  .table-wrap { overflow-x:auto; } table { width:100%; border-collapse:collapse; font-size:14px; }
+  th,td { padding:9px 8px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; } td:first-child { overflow-wrap:anywhere; min-width:160px; } td button { padding:3px 10px; }
+  pre { margin:8px 0 0; padding:13px; border:1px solid var(--line); border-radius:7px; background:var(--bg); overflow-x:auto; font:13px/1.5 ui-monospace,Menlo,Consolas,monospace; }
+  .login { max-width:380px; margin:12vh auto 0; }
+</style>
+</head>
+<body>
+<main id="login" class="login" hidden>
+  <form class="card" id="login-form">
+    <h1>OmniRAG Core</h1>
+    <p>Sign in to manage your assistant.</p>
+    <label>Admin password <input id="password" type="password" autocomplete="current-password" required></label>
+    <div class="actions"><button class="primary">Sign in</button></div>
+    <div id="login-status" role="status"></div>
+  </form>
+</main>
+
+<div id="dashboard" hidden>
+  <header><h1>OmniRAG Core</h1><button id="logout" type="button">Sign out</button></header>
+  <main>
+    <nav role="tablist" aria-label="Admin sections">
+      <button type="button" role="tab" data-tab="models" aria-selected="true">Models</button>
+      <button type="button" role="tab" data-tab="training" aria-selected="false">Knowledge base</button>
+      <button type="button" role="tab" data-tab="widget" aria-selected="false">Widget and embed</button>
+    </nav>
+
+    <section id="tab-models" role="tabpanel">
+      <form id="models-form">
+        <div class="card">
+          <h2>Chat model</h2>
+          <p>Writes the answers shown to visitors.</p>
+          <div class="grid">
+            <label>Provider
+              <select name="chat_provider" id="chat-provider">
+                <option value="openai">OpenAI</option><option value="groq">Groq</option><option value="gemini">Google Gemini</option>
+                <option value="anthropic">Anthropic</option><option value="ollama">Ollama</option><option value="custom">Custom (OpenAI-compatible)</option>
+              </select>
+            </label>
+            <label>Model <input name="chat_model" id="chat-model" list="chat-models" required maxlength="200" autocomplete="off"></label>
+            <datalist id="chat-models"></datalist>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Embedding model</h2>
+          <p>Indexes your documents. Changing it requires a knowledge base reset and retraining.</p>
+          <div class="grid">
+            <label>Provider
+              <select name="embed_provider" id="embed-provider">
+                <option value="openai">OpenAI</option><option value="gemini">Google Gemini</option><option value="ollama">Ollama</option><option value="custom">Custom (OpenAI-compatible)</option>
+              </select>
+            </label>
+            <label>Model <input name="embed_model" id="embed-model" list="embed-models" required maxlength="200" autocomplete="off"></label>
+            <datalist id="embed-models"></datalist>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Credentials</h2>
+          <p>Only the fields used by the selected providers are shown. Keys are encrypted at rest; leave a masked key as is to keep it.</p>
+          <div class="grid">
+            <label data-for="openai">OpenAI API key <input name="openai_api_key" type="password" autocomplete="off" maxlength="500"></label>
+            <label data-for="groq">Groq API key <input name="groq_api_key" type="password" autocomplete="off" maxlength="500"></label>
+            <label data-for="gemini">Gemini API key <input name="gemini_api_key" type="password" autocomplete="off" maxlength="500"></label>
+            <label data-for="anthropic">Anthropic API key <input name="anthropic_api_key" type="password" autocomplete="off" maxlength="500"></label>
+            <label data-for="ollama">Ollama base URL <input name="ollama_base_url" type="url" placeholder="http://host.docker.internal:11434"></label>
+            <label data-for="custom-chat">Custom chat base URL <input name="custom_llm_base_url" type="url" placeholder="https://openrouter.ai/api/v1"></label>
+            <label data-for="custom-chat">Custom chat API key (optional) <input name="custom_llm_api_key" type="password" autocomplete="off" maxlength="500"></label>
+            <label data-for="custom-embed">Custom embedding base URL <input name="custom_embed_base_url" type="url" placeholder="http://host.docker.internal:1234/v1"></label>
+            <label data-for="custom-embed">Custom embedding API key (optional) <input name="custom_embed_api_key" type="password" autocomplete="off" maxlength="500"></label>
+          </div>
+          <div class="actions">
+            <button class="primary">Save settings</button>
+            <button type="button" id="test-llm">Test LLM Connection</button>
+          </div>
+          <div id="models-status" role="status"></div>
+        </div>
+      </form>
+    </section>
+
+    <section id="tab-training" role="tabpanel" hidden>
+      <form class="card" id="pdf-form"><h2>Upload a PDF</h2><p>Text is read from every page.</p>
+        <label>PDF file <input name="file" type="file" accept="application/pdf,.pdf" required></label>
+        <div class="actions"><button class="primary">Train from PDF</button></div><div class="status" role="status"></div></form>
+      <form class="card" id="url-form"><h2>Add a web page</h2><p>Scripts, navigation and footers are removed.</p>
+        <label>Page URL <input name="url" type="url" placeholder="https://example.com/faq" required maxlength="2048"></label>
+        <div class="actions"><button class="primary">Train from URL</button></div><div class="status" role="status"></div></form>
+      <form class="card" id="text-form"><h2>Add text</h2><p>FAQs, policies or notes.</p>
+        <label>Title <input name="title" required maxlength="200"></label><br>
+        <label>Text <textarea name="text" required maxlength="1000000"></textarea></label>
+        <div class="actions"><button class="primary">Train from text</button></div><div class="status" role="status"></div></form>
+      <div class="card">
+        <h2>Documents</h2><p id="doc-summary"></p>
+        <div class="table-wrap" id="doc-table"><table><thead><tr><th>Title</th><th>Type</th><th>Chunks</th><th>Added</th><th><span hidden>Actions</span></th></tr></thead><tbody id="doc-rows"></tbody></table></div>
+        <div class="actions">
+          <button type="button" class="danger" id="reset">Reset knowledge base</button>
+          <button type="button" class="danger" id="reset-confirm" hidden>Yes, delete everything</button>
+          <button type="button" id="reset-cancel" hidden>Cancel</button>
+        </div>
+        <div id="docs-status" role="status"></div>
+      </div>
+    </section>
+
+    <section id="tab-widget" role="tabpanel" hidden>
+      <form class="card" id="widget-form"><h2>Appearance</h2><p>Applied to every site that embeds the widget.</p>
+        <div class="grid"><label>Bot title <input name="bot_title" required maxlength="60"></label><label>Brand color <input name="brand_color" type="color"></label></div>
+        <div class="actions"><button class="primary">Save appearance</button></div><div class="status" role="status"></div></form>
+      <div class="card"><h2>Embed on your website</h2><p>Paste before the closing &lt;/body&gt; tag.</p>
+        <pre id="embed-code"></pre><div class="actions"><button type="button" data-copy="embed-code">Copy</button></div>
+        <h3>REST API for mobile apps</h3><pre id="api-code"></pre><div class="actions"><button type="button" data-copy="api-code">Copy</button></div></div>
+      <form class="card" id="chat-form"><h2>Try it</h2><p>Sends a question through the public chat API.</p>
+        <label>Question <input name="question" required maxlength="2000"></label>
+        <div class="actions"><button class="primary">Ask</button></div><div class="status" role="status"></div></form>
+    </section>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var base = location.pathname.replace(/\/(?:admin|static\/admin\.html)\/?$/, "").replace(/\/$/, "");
+  var STORAGE_KEY = "omnirag-admin-pass";
+  var CHAT_MODELS = {
+    openai: ["gpt-4o-mini", "gpt-4o"],
+    groq: ["openai/gpt-oss-20b", "openai/gpt-oss-120b", "llama-3.3-70b-versatile"],
+    gemini: ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash"],
+    anthropic: ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5"],
+    ollama: ["llama3.2", "qwen3", "mistral"],
+    custom: []
+  };
+  var EMBED_MODELS = {
+    openai: ["text-embedding-3-small", "text-embedding-3-large"],
+    gemini: ["gemini-embedding-001"],
+    ollama: ["nomic-embed-text", "mxbai-embed-large"],
+    custom: []
+  };
+  var password = "";
+  try { password = sessionStorage.getItem(STORAGE_KEY) || ""; } catch (error) { password = ""; }
+
+  function $(id) { return document.getElementById(id); }
+  function remember(value) {
+    password = value;
+    try { if (value) sessionStorage.setItem(STORAGE_KEY, value); else sessionStorage.removeItem(STORAGE_KEY); }
+    catch (error) { console.warn("The session is not stored:", error.message); }
+  }
+  // Header values must be latin-1, so the password travels as UTF-8 bytes.
+  function headerSafe(value) {
+    return Array.from(new TextEncoder().encode(value), function (byte) { return String.fromCharCode(byte); }).join("");
+  }
+  function notify(target, message, kind) {
+    target.textContent = message;
+    target.className = message ? "notice " + (kind || "ok") : "status";
+  }
+  function describe(detail) {
+    if (Array.isArray(detail)) {
+      return detail.map(function (item) { return (item.loc || []).slice(1).join(".") + ": " + item.msg; }).join("\n");
+    }
+    return typeof detail === "string" ? detail : "";
+  }
+  async function api(method, path, body) {
+    var options = { method: method, headers: {} };
+    if (path.indexOf("/api/admin/") === 0) options.headers["x-admin-pass"] = headerSafe(password);
+    if (body instanceof FormData) options.body = body;
+    else if (body !== undefined) { options.headers["Content-Type"] = "application/json"; options.body = JSON.stringify(body); }
+    var response;
+    try { response = await fetch(base + path, options); }
+    catch (error) { throw new Error("The server could not be reached."); }
+    var data = await response.json().catch(function () { return {}; });
+    if (!response.ok) {
+      if (response.status === 401) showLogin();
+      throw new Error(describe(data.detail) || "Request failed with HTTP " + response.status + ".");
+    }
+    return data;
+  }
+  async function run(target, buttons, pendingText, task) {
+    notify(target, pendingText, "warn");
+    buttons.forEach(function (button) { button.disabled = true; });
+    try { await task(); } catch (error) { notify(target, error.message, "error"); }
+    finally { buttons.forEach(function (button) { button.disabled = false; }); }
+  }
+
+  function showLogin() { remember(""); $("dashboard").hidden = true; $("login").hidden = false; $("password").focus(); }
+  function applySettings(settings) {
+    document.querySelectorAll("#models-form [name], #widget-form [name]").forEach(function (field) {
+      if (settings[field.name] !== undefined) field.value = settings[field.name];
+    });
+    updateProviders();
+  }
+  async function openDashboard() {
+    applySettings(await api("GET", "/api/admin/settings"));
+    await loadDocuments();
+    $("login").hidden = true; $("dashboard").hidden = false;
+  }
+  function fillList(id, models) {
+    $(id).replaceChildren.apply($(id), models.map(function (model) { var option = document.createElement("option"); option.value = model; return option; }));
+  }
+  function updateProviders() {
+    var chat = $("chat-provider").value, embed = $("embed-provider").value;
+    fillList("chat-models", CHAT_MODELS[chat]); fillList("embed-models", EMBED_MODELS[embed]);
+    var active = [chat === "custom" ? "custom-chat" : chat, embed === "custom" ? "custom-embed" : embed];
+    document.querySelectorAll("[data-for]").forEach(function (label) { label.hidden = active.indexOf(label.dataset.for) === -1; });
+  }
+  function collect(form) {
+    var values = {};
+    form.querySelectorAll("[name]").forEach(function (field) { values[field.name] = field.value.trim(); });
+    return values;
+  }
+
+  async function loadDocuments() {
+    var data = await api("GET", "/api/admin/documents");
+    $("doc-summary").textContent = data.documents.length
+      ? data.documents.length + (data.documents.length === 1 ? " document, " : " documents, ") + data.total_chunks + " chunks indexed."
+      : "Nothing indexed yet. Add a PDF, a web page or text above.";
+    $("doc-table").hidden = !data.documents.length;
+    $("doc-rows").replaceChildren.apply($("doc-rows"), data.documents.map(function (doc) {
+      var row = document.createElement("tr");
+      [doc.title + (doc.source_type === "url" && doc.title !== doc.source ? "\n" + doc.source : ""), doc.source_type.toUpperCase(), String(doc.chunk_count), new Date(doc.created_at).toLocaleString()].forEach(function (value) {
+        var cell = document.createElement("td"); cell.textContent = value; cell.style.whiteSpace = "pre-line"; row.appendChild(cell);
+      });
+      var remove = document.createElement("button"), actions = document.createElement("td");
+      remove.type = "button"; remove.textContent = "Delete"; remove.className = "danger"; remove.setAttribute("aria-label", "Delete " + doc.title);
+      remove.addEventListener("click", function () {
+        run($("docs-status"), [remove], "Deleting…", async function () {
+          await api("DELETE", "/api/admin/documents/" + encodeURIComponent(doc.id));
+          await loadDocuments(); notify($("docs-status"), "Deleted " + doc.title + ".");
+        });
+      });
+      actions.appendChild(remove); row.appendChild(actions);
+      return row;
+    }));
+  }
+
+  $("login-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+    run($("login-status"), [event.submitter], "Signing in…", async function () {
+      remember($("password").value);
+      await openDashboard();
+      $("password").value = ""; notify($("login-status"), "");
+    });
+  });
+  $("logout").addEventListener("click", showLogin);
+
+  document.querySelectorAll("[data-tab]").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll("[data-tab]").forEach(function (other) {
+        var selected = other === tab;
+        other.setAttribute("aria-selected", String(selected)); $("tab-" + other.dataset.tab).hidden = !selected;
+      });
+    });
+  });
+
+  $("chat-provider").addEventListener("change", function () { $("chat-model").value = CHAT_MODELS[this.value][0] || ""; updateProviders(); });
+  $("embed-provider").addEventListener("change", function () { $("embed-model").value = EMBED_MODELS[this.value][0] || ""; updateProviders(); });
+
+  $("models-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+    run($("models-status"), [event.submitter], "Saving…", async function () {
+      var result = await api("POST", "/api/admin/settings", collect($("models-form")));
+      applySettings(result.settings);
+      if (result.warnings.length) notify($("models-status"), "Saved. " + result.warnings.join(" "), "warn");
+      else notify($("models-status"), "Settings saved.");
+    });
+  });
+  $("test-llm").addEventListener("click", function () {
+    if (!$("models-form").reportValidity()) return;
+    run($("models-status"), [$("test-llm")], "Testing the connection…", async function () {
+      var result = await api("POST", "/api/admin/test-llm", collect($("models-form")));
+      notify($("models-status"), result.success ? "Connected to " + result.provider + " (" + result.model + "). Reply: " + result.message : result.message, result.success ? "ok" : "error");
+    });
+  });
+
+  function trainer(id, path, payload) {
+    $(id).addEventListener("submit", function (event) {
+      event.preventDefault();
+      var form = event.currentTarget, status = form.querySelector("[role=status]");
+      run(status, [event.submitter], "Training… large documents can take a minute.", async function () {
+        var doc = await api("POST", path, payload(form));
+        form.reset(); await loadDocuments();
+        notify(status, "Indexed " + doc.title + " (" + doc.chunk_count + " chunks).");
+      });
+    });
+  }
+  trainer("pdf-form", "/api/admin/train/pdf", function (form) { return new FormData(form); });
+  trainer("url-form", "/api/admin/train/url", collect);
+  trainer("text-form", "/api/admin/train/text", collect);
+
+  function armReset(armed) { $("reset").hidden = armed; $("reset-confirm").hidden = !armed; $("reset-cancel").hidden = !armed; }
+  $("reset").addEventListener("click", function () { armReset(true); $("reset-cancel").focus(); });
+  $("reset-cancel").addEventListener("click", function () { armReset(false); });
+  $("reset-confirm").addEventListener("click", function () {
+    run($("docs-status"), [$("reset-confirm")], "Resetting…", async function () {
+      var result = await api("DELETE", "/api/admin/reset");
+      armReset(false); await loadDocuments();
+      notify($("docs-status"), "Knowledge base reset. Documents removed: " + result.documents_removed + ".");
+    });
+  });
+
+  $("widget-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+    var status = event.currentTarget.querySelector("[role=status]"), values = collect(event.currentTarget);
+    run(status, [event.submitter], "Saving…", async function () { await api("POST", "/api/admin/settings", values); notify(status, "Appearance saved."); });
+  });
+  $("chat-form").addEventListener("submit", function (event) {
+    event.preventDefault();
+    var status = event.currentTarget.querySelector("[role=status]"), values = collect(event.currentTarget);
+    run(status, [event.submitter], "Thinking…", async function () {
+      var result = await api("POST", "/api/public/chat", values);
+      notify(status, result.answer + (result.sources.length ? "\n\nSources: " + result.sources.join(", ") : ""));
+    });
+  });
+
+  var serverUrl = location.origin + base;
+  $("embed-code").textContent = '<script src="' + serverUrl + '/static/widget.js" defer></' + "script>";
+  $("api-code").textContent = "curl -X POST " + serverUrl + "/api/public/chat \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"question\": \"What are your opening hours?\"}'";
+  document.querySelectorAll("[data-copy]").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      var node = $(button.dataset.copy);
+      try { await navigator.clipboard.writeText(node.textContent); button.textContent = "Copied"; }
+      catch (error) { // The clipboard API is unavailable on plain HTTP, so select the text instead.
+        getSelection().selectAllChildren(node); button.textContent = "Selected, press Ctrl/Cmd+C";
+      }
+      setTimeout(function () { button.textContent = "Copy"; }, 2500);
+    });
+  });
+
+  if (password) openDashboard().catch(function (error) { showLogin(); notify($("login-status"), error.message, "error"); });
+  else showLogin();
+})();
+</script>
+</body>
+</html>
