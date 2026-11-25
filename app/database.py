@@ -41,7 +41,7 @@ DEFAULT_SETTINGS: dict[str, str] = {
     "groq_api_key": "",
     "gemini_api_key": "",
     "anthropic_api_key": "",
-    "ollama_base_url": os.environ.get("OLLAMA_BASE_URL", "").strip() or "http://localhost:11434",
+    "ollama_base_url": "http://host.docker.internal:11434",
     "custom_llm_base_url": "",
     "custom_llm_api_key": "",
     "custom_embed_base_url": "",

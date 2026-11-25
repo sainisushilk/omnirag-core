@@ -16,8 +16,7 @@ Self-hosted Retrieval-Augmented Generation (RAG) appliance. Train it on PDFs, we
 - **Embeddable widget:** plain JavaScript with no dependencies, for WordPress, Shopify, PHP or static HTML.
 - **REST API:** for mobile apps and custom integrations.
 - **Encrypted credentials:** API keys are encrypted with Fernet and masked in the panel.
-- **Local embeddings included:** Ollama runs in the stack, with no API key needed.
-- **Simple to run:** one Compose command, with embedded Qdrant and SQLite on a single volume.
+- **One container:** embedded Qdrant and SQLite on a single volume.
 
 ## Contents
 
@@ -25,7 +24,6 @@ Self-hosted Retrieval-Augmented Generation (RAG) appliance. Train it on PDFs, we
 [Quick start](#quick-start) ·
 [Configuration](#configuration) ·
 [Admin guide](#admin-guide) ·
-[Ollama](#ollama) ·
 [Embed the widget](#embed-the-widget) ·
 [API](#api) ·
 [Production notes](#production-notes) ·
@@ -77,9 +75,6 @@ When either value is unset, a random one is generated and kept in `data/` with o
 | `CHAT_RATE_LIMIT_PER_MINUTE` | `30` | Public questions per client IP; `0` disables the limit |
 | `ALLOW_PRIVATE_URLS` | `false` | Allow crawling URLs on private networks |
 | `FORWARDED_ALLOW_IPS` | `127.0.0.1` | Reverse proxy addresses trusted for `X-Forwarded-*` headers |
-| `OLLAMA_EMBED_MODEL` | `nomic-embed-text` | Model downloaded on startup |
-| `OLLAMA_BASE_URL` | `http://ollama:11434` | Default Ollama address until one is saved in the panel |
-| `OLLAMA_VERSION` | `0.40.16` | Ollama image tag |
 | `LOG_LEVEL` | `INFO` | Server log level |
 
 ## Admin guide
@@ -90,38 +85,7 @@ When either value is unset, a random one is generated and kept in `data/` with o
 
 Vectors from different embedding models cannot be mixed. After changing the embedding model, use **Reset knowledge base** and train again; until then, chat and training are refused instead of returning wrong results.
 
-Groq and Anthropic can be used for chat but not for embeddings. Pair them with Ollama, Gemini, OpenAI or a custom embedding endpoint.
-
-## Ollama
-
-Ollama is part of the Docker stack, so embeddings work locally without an API key. `docker compose up -d` starts it and downloads `nomic-embed-text` in the background. The first start downloads several gigabytes; watch the model download with:
-
-```bash
-docker compose logs -f ollama-pull
-```
-
-In the admin panel, under **Models**:
-
-1. Set the **embedding provider** to Ollama and the model to `nomic-embed-text`.
-2. Keep the **Ollama base URL** as `http://ollama:11434`.
-3. Choose any chat provider, such as Groq, and save.
-
-To also chat with a local model, download one and select Ollama as the chat provider:
-
-```bash
-docker compose exec ollama ollama pull llama3.2
-docker compose exec ollama ollama list
-```
-
-- **Storage:** models are kept in the `ollama_models` volume and survive restarts. `docker compose down -v` deletes them.
-- **Memory:** embeddings need about 1 GB of free RAM. Chat models need several more; a small VPS is better served by a hosted chat provider.
-- **GPU:** the bundled service runs on the CPU. Docker on macOS cannot use the Apple GPU; install Ollama natively if you need it.
-- **Existing Ollama:** use `http://host.docker.internal:11434` as the base URL. On Linux it must listen on an address containers can reach (`OLLAMA_HOST=0.0.0.0`).
-- **Without Ollama:** run `docker compose up -d --build omnirag`.
-
-**Upgrading from a version without bundled Ollama:** run `docker compose up -d --build`. If you had saved another Ollama base URL, change it to `http://ollama:11434` in the admin panel.
-
-"Network is unreachable", "connection refused" or "name or service not known" means Ollama is not running at the saved base URL. "Model not found" means the model has not been downloaded yet.
+For Ollama on the Docker host, use `http://host.docker.internal:11434`. On Linux, Ollama must listen on an address reachable from containers (`OLLAMA_HOST=0.0.0.0`).
 
 ## Embed the widget
 
